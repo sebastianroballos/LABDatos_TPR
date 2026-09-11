@@ -22,18 +22,28 @@ hist(Y)
 #Veamos cómo varía la dispersión de ingresos a medida que cambia k: Vamos iterando los grados de 
 #libertad y ploteamos los histogramas todos juntos
 
-#Hacemos una grilla de 2 filas y 3 columnas
-par(mfrow = c(2,3))
+#Hacemos una grilla de 1 fila y 4 columnas
+par(mfrow = c(1,4))
 
 #Iteramos histogramas de la chi cuadrado con un k cada vez mayor
-n_sim = 6
-deg = 1
+n_sim = 4
+deg = 4^(1:n_sim)
 means = numeric(n_sim)
 sds = numeric(n_sim)
 for (i in 1:n_sim){
-  Z = rchisq(n_hogares, deg)
-  hist(Z, main = paste("df =", deg), xlab = "Z", col = "steelblue", border = "white")
-  deg = deg*5
+  Z = rchisq(n_hogares, deg[i])
+  hist(Z,
+       breaks = 30,
+       freq = FALSE,    #Representamos como densidad                              
+       col = adjustcolor("steelblue", alpha.f = 0.6), # Color
+       border = "white",
+       main = bquote(chi^2 ~ "con" ~ df == .(deg[i])), # Título (grados)
+       xlab = "Ingreso", ylab = "Densidad")
+  
+  # Densidad (curva)
+  curve(dchisq(x, deg[i]), add = TRUE, col = "firebrick", lwd = 2)
+  
+  #Guardamos media y sd de cada simulación
   means[i] = mean(Z)
   sds[i] = sd(Z)
 }
