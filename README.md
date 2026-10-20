@@ -17,6 +17,7 @@ LABDatos_TPR/
 ├── analisis_econometrico/
 │   ├── script_principal.R
 │   └── funciones.R
+│   └── data/
 └── simulacion/
     ├── script_principal.R
     └── funciones.R
@@ -44,8 +45,10 @@ Cada ejercicio tiene su propio `script_principal.R`, que carga sus funciones des
 
 ### Análisis econométrico: gapminder
 
-Regresiones sobre ingreso por persona y esperanza de vida con el dataset gapminder.
+Análisis econométrico: gapminder
+Regresiones sobre ingreso por persona y esperanza de vida con el dataset gapminder (data/gapminder.csv): modelos polinómicos de ingreso para Argentina con testeo en los últimos 10 años, correlaciones entre países sudamericanos, y regresiones simples y múltiples de esperanza de vida (2010), con contrastes de hipótesis y selección de un modelo de hasta tres covariables.
+Este script se corre con el directorio de trabajo en analisis_econometrico/, porque lee data/gapminder.csv y carga funciones.R con rutas relativas.
 
 ### Simulación: demanda con preferencias Cobb-Douglas
 
-Simulación de 10.000 hogares con ingresos chi-cuadrado: demandas óptimas, shock de precios y heterogeneidad en preferencias.
+Simulación de la demanda de dos bienes de 10.000 hogares con preferencias Cobb-Douglas ($\alpha_1 = 0{,}6$, $p_1 = 10$, $p_2 = 5$) e ingresos con distribución chi-cuadrado ($k = 1000$): demandas óptimas y utilidad indirecta, probabilidad de bajo consumo, shock del 20% en el precio del bien 1, y heterogeneidad en preferencias con $\alpha_1 \sim \text{Beta}(3,2)$, comparando dispersión, sensibilidad al shock y quién pierde más.
