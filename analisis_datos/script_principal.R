@@ -152,27 +152,23 @@ produccion_total
 # aumento la produccion de petroleo (exponencialmente) y de gas (mas suavemente),
 # que la concentracion de mercado cayo y que entraron nuevos players.
 
-# Correccion (devolucion del profesor): en la version original medimos la participacion
-# de cada roca solo en cantidad de pozos activos. Pero un pozo shale produce bastante mas
-# que uno tight, asi que contar pozos no dice que roca aporta la produccion. Medimos las
-# dos cosas: participacion en pozos activos y en volumen producido, para gas y petroleo.
+# Medimos la participacion de cada roca sobre el volumen producido, que es lo que
+# refleja cuanto aporta cada una, por separado para gas y petroleo.
 shale_tight <- clean_data %>% filter(!is.na(sub_tipo_recurso)) %>% group_by(anio) %>%
-  summarise(pozos = n_distinct(idpozo[sub_tipo_recurso == "SHALE"]) / n_distinct(idpozo),
-            gas = sum(prod_gas[sub_tipo_recurso == "SHALE"]) / sum(prod_gas),
+  summarise(gas = sum(prod_gas[sub_tipo_recurso == "SHALE"]) / sum(prod_gas),
             petroleo = sum(prod_pet[sub_tipo_recurso == "SHALE"]) / sum(prod_pet)) %>%
   pivot_longer(-anio, names_to = "medida", values_to = "share_shale") %>%
   mutate(share_tight = 1 - share_shale)
 shale_tight %>% filter(anio %in% c(2014, 2025))
 
-# Primer año en que el shale supera al tight, segun cada medida
+# Primer año en que el shale supera al tight en cada recurso
 shale_tight %>% filter(share_shale > 0.5) %>% group_by(medida) %>% summarise(cruce = min(anio))
 
-# Medido en pozos, el shale supera al tight en 2021 (48% en 2014, 66% en 2025).
-# Medido en produccion la historia cambia: en gas el cruce llega antes, en 2019
-# (de 11% a 84%), y en petroleo no hay cruce: ya era 86% shale en 2014 y llega a 99%.
+# En gas, el shale supera al tight en 2019 (pasa de 11% de la produccion en 2014 a 84%
+# en 2025). En petroleo no hay cruce: ya era 86% shale en 2014 y llega a 99%.
 # El giro hacia el shale es, sobre todo, una historia del gas.
 
-etiquetas_medida <- c(pozos = "Pozos activos", gas = "Produccion de gas", petroleo = "Produccion de petroleo")
+etiquetas_medida <- c(gas = "Produccion de gas", petroleo = "Produccion de petroleo")
 
 grafico_shale_tight <- shale_tight %>%
   pivot_longer(c(share_shale, share_tight), names_to = "roca", values_to = "share") %>%
@@ -186,9 +182,9 @@ grafico_shale_tight <- shale_tight %>%
   scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
   scale_x_continuous(breaks = 2014:2025) +
   labs(x = NULL, y = NULL, color = "Tipo de roca",
-       title = "Shale vs. tight: el cruce depende de como se mida",
-       subtitle = "Pozos: cruce en 2021. Gas: cruce en 2019. Petroleo: shale desde el inicio de la serie.",
-       caption = "Fuente: Secretaria de Energia. Participacion del shale en pozos activos y en volumen producido.") +
+       title = "Shale vs. tight: el giro al shale fue del gas",
+       subtitle = "Gas: el shale supera al tight en 2019. Petroleo: shale desde el inicio de la serie.",
+       caption = "Fuente: Secretaria de Energia. Participacion de cada roca en el volumen producido.") +
   theme_minimal() +
   theme(plot.title = element_text(face = "bold"), panel.grid.minor = element_blank(),
         strip.text = element_text(face = "bold", hjust = 0), legend.position = "top")
@@ -203,11 +199,10 @@ grafico_shale_tight
 #    desde la segunda mitad de los 2010s.
 # 3) La produccion de gas crecio mas hasta 2017; de 2018 en adelante el petroleo
 #    paso a liderar el crecimiento y la tendencia continua.
-# 4) El paso de tight a shale depende de como se mida. En pozos activos, el shale
-#    supera al tight en 2021. En produccion de gas, el cruce llega antes (2019); en
-#    petroleo no hay cruce, porque ya era 86% shale en 2014. El resultado es consistente
-#    con la hipotesis inicial en el gas; en el petroleo el tipo de roca no refleja la
-#    madurez de la industria, porque fue shale desde el inicio.
+# 4) En el gas, el shale supera al tight en 2019; en el petroleo no hay cruce, porque
+#    ya era 86% shale en 2014. El resultado es consistente con la hipotesis inicial en
+#    el gas; en el petroleo el tipo de roca no refleja la madurez de la industria,
+#    porque fue shale desde el inicio.
 # 5) Hacia finales de la decada de 2010 la industria cambio: entraron nuevos players
 #    y el producto estrella paso a ser el petroleo. En el gas, en paralelo (2018-2019),
 #    la produccion se volco a proyectos mas intensivos en capital y tecnologia
