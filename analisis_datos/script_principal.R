@@ -103,6 +103,19 @@ grafico_area_pet
 # share siendo jugadores relativamente nuevos en el Oil & Gas no convencional
 # argentino.
 
+# Concentracion: indice Herfindahl-Hirschman (HHI) por año, sobre todas las empresas.
+# HHI = suma de los market shares al cuadrado (en puntos porcentuales).
+hhi <- bind_rows(gas = share_anual_gas, petroleo = share_anual_pet, .id = "recurso") %>%
+  group_by(recurso, anio) %>%
+  summarise(hhi = sum((100 * market_share)^2),
+            share_ypf = sum(market_share[empresa == "YPF S.A."]), .groups = "drop")
+hhi %>% filter(anio %in% c(2014, 2025))
+
+# Petroleo: YPF pasa de 78% a 54% y el HHI de 6.197 a 3.223. Gas: YPF de 41% a 27% y
+# el HHI de 2.506 a 1.587. La concentracion cae, pero el petroleo sigue por encima de
+# 2.500, el umbral de mercado altamente concentrado de las guias DOJ/FTC (2010): pasa
+# de casi monopolio a oligopolio, no a un mercado atomizado.
+
 # 2) Crecimiento del petroleo y del gas
 
 # Como estan en unidades distintas, comparamos indices de crecimiento con año base:
@@ -139,19 +152,42 @@ produccion_total
 # aumento la produccion de petroleo (exponencialmente) y de gas (mas suavemente),
 # que la concentracion de mercado cayo y que entraron nuevos players.
 
-# Participacion de Shale y de Tight en los pozos activos, año a año
+# Medimos la participacion de cada roca sobre el volumen producido, que es lo que
+# refleja cuanto aporta cada una, por separado para gas y petroleo.
 shale_tight <- clean_data %>% filter(!is.na(sub_tipo_recurso)) %>% group_by(anio) %>%
-  summarise(share_shale = n_distinct(idpozo[sub_tipo_recurso == "SHALE"]) / n_distinct(idpozo)) %>%
+  summarise(gas = sum(prod_gas[sub_tipo_recurso == "SHALE"]) / sum(prod_gas),
+            petroleo = sum(prod_pet[sub_tipo_recurso == "SHALE"]) / sum(prod_pet)) %>%
+  pivot_longer(-anio, names_to = "medida", values_to = "share_shale") %>%
   mutate(share_tight = 1 - share_shale)
-shale_tight
+shale_tight %>% filter(anio %in% c(2014, 2025))
 
-# Hasta 2021 habia una dominancia de la roca Tight; ese año la tendencia se
-# revirtio y la explotacion de roca Shale siguio creciendo hasta hoy.
+# Primer año en que el shale supera al tight en cada recurso
+shale_tight %>% filter(share_shale > 0.5) %>% group_by(medida) %>% summarise(cruce = min(anio))
 
-grafico_shale_tight <- ggplot(shale_tight, aes(x = anio)) +
-  geom_line(aes(y = share_shale, color = "Shale")) + geom_line(aes(y = share_tight, color = "Tight")) +
-  labs(x = "Año", y = "Participacion en pozos activos", color = "Tipo de roca",
-       title = "Shale y tight: ¿cual se explota mas?")
+# En gas, el shale supera al tight en 2019 (pasa de 11% de la produccion en 2014 a 84%
+# en 2025). En petroleo no hay cruce: ya era 86% shale en 2014 y llega a 99%.
+# El giro hacia el shale es, sobre todo, una historia del gas.
+
+etiquetas_medida <- c(gas = "Produccion de gas", petroleo = "Produccion de petroleo")
+
+grafico_shale_tight <- shale_tight %>%
+  pivot_longer(c(share_shale, share_tight), names_to = "roca", values_to = "share") %>%
+  mutate(medida = factor(etiquetas_medida[medida], levels = etiquetas_medida)) %>%
+  ggplot(aes(x = anio, y = share, color = roca)) +
+  geom_hline(yintercept = 0.5, linetype = "dotted", color = "grey40") +
+  geom_line(linewidth = 1.1) + geom_point(size = 1.5) +
+  facet_wrap(~ medida, ncol = 1) +
+  scale_color_manual(values = c(share_shale = "#2a78d6", share_tight = "#eb6834"),
+                     labels = c("Shale", "Tight")) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  scale_x_continuous(breaks = 2014:2025) +
+  labs(x = NULL, y = NULL, color = "Tipo de roca",
+       title = "Shale vs. tight: el giro al shale fue del gas",
+       subtitle = "Gas: el shale supera al tight en 2019. Petroleo: shale desde el inicio de la serie.",
+       caption = "Fuente: Secretaria de Energia. Participacion de cada roca en el volumen producido.") +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), panel.grid.minor = element_blank(),
+        strip.text = element_text(face = "bold", hjust = 0), legend.position = "top")
 grafico_shale_tight
 
 # Conclusiones
@@ -163,10 +199,12 @@ grafico_shale_tight
 #    desde la segunda mitad de los 2010s.
 # 3) La produccion de gas crecio mas hasta 2017; de 2018 en adelante el petroleo
 #    paso a liderar el crecimiento y la tendencia continua.
-# 4) En 2021 la explotacion de roca Shale supero a la de Tight, lo que valida la
-#    hipotesis inicial. Mayor explotacion de roca Shale esta vinculada con una
-#    industria mas madura, confiable y redituable.
+# 4) En el gas, el shale supera al tight en 2019; en el petroleo no hay cruce, porque
+#    ya era 86% shale en 2014. El resultado es consistente con la hipotesis inicial en
+#    el gas; en el petroleo el tipo de roca no refleja la madurez de la industria,
+#    porque fue shale desde el inicio.
 # 5) Hacia finales de la decada de 2010 la industria cambio: entraron nuevos players
-#    y el producto estrella paso a ser el petroleo. Años despues, la madurez de la
-#    industria se reflejo en proyectos mas intensivos en capital y tecnologia
-#    (explotacion de roca Shale).
+#    y el producto estrella paso a ser el petroleo. En el gas, en paralelo (2018-2019),
+#    la produccion se volco a proyectos mas intensivos en capital y tecnologia
+#    (explotacion de roca Shale). En el petroleo esto no aplica: ya era mayormente
+#    shale desde el inicio de la serie.
